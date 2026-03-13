@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>제주 맛집 — Jeju Food Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1c1c1a;--stone:#f5f2ed;--sand:#e8e3da;
+  --rust:#c04e28;--sage:#3d6b5e;--gold:#a8874a;
+  --muted:#8a8780;--white:#fdfcfa;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--stone);color:var(--ink);font-family:'Noto Sans KR',sans-serif;}
+
+.site-header{position:sticky;top:0;z-index:100;background:rgba(245,242,237,0.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--sand);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;}
+.logo{font-family:'Cormorant Garamond',serif;font-size:21px;color:var(--ink);text-decoration:none;}
+.logo span{color:var(--rust);font-style:italic;}
+.lang-bar{display:flex;gap:4px;}
+.lang-btn{padding:5px 13px;border-radius:20px;border:1px solid var(--sand);background:transparent;font-size:12px;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all 0.2s;}
+.lang-btn.active{background:var(--ink);color:var(--white);border-color:var(--ink);}
+
+.hero{padding:36px 20px 28px;text-align:center;background:linear-gradient(160deg,var(--white) 0%,var(--stone) 100%);}
+.hero-eyebrow{font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--rust);margin-bottom:10px;}
+.hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(26px,6vw,44px);line-height:1.2;margin-bottom:10px;}
+.hero-title em{color:var(--rust);font-style:italic;}
+.hero-sub{font-size:13px;color:var(--muted);line-height:1.8;}
+
+/* 로딩 */
+.loading{text-align:center;padding:60px 20px;color:var(--muted);}
+.loading-spinner{width:36px;height:36px;border:3px solid var(--sand);border-top-color:var(--rust);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* 검색 패널 */
+.search-panel{background:var(--white);margin:20px;border-radius:20px;padding:24px;border:1px solid var(--sand);box-shadow:0 4px 24px rgba(0,0,0,0.06);}
+.panel-section{margin-bottom:20px;}
+.panel-label{font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+.chips{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{padding:8px 16px;border-radius:100px;border:1.5px solid var(--sand);background:var(--stone);font-size:13px;color:var(--ink);cursor:pointer;transition:all 0.2s;font-family:'Noto Sans KR',sans-serif;white-space:nowrap;}
+.chip:hover{border-color:var(--rust);color:var(--rust);}
+.chip.on{background:var(--ink);border-color:var(--ink);color:var(--white);}
+.search-btn{width:100%;padding:14px;background:var(--rust);color:var(--white);border:none;border-radius:14px;font-size:15px;font-weight:600;font-family:'Noto Sans KR',sans-serif;cursor:pointer;transition:all 0.2s;}
+.search-btn:hover{background:#a33e1e;box-shadow:0 6px 20px rgba(192,78,40,0.3);}
+.search-btn:active{transform:scale(0.98);}
+
+/* SVG 지도 */
+.map-section{margin:0 20px 24px;background:var(--white);border-radius:20px;border:1px solid var(--sand);padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.04);}
+.map-section-label{font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;text-align:center;}
+.map-section svg{width:100%;height:auto;display:block;}
+.rg{cursor:pointer;}
+.rg-fill{transition:opacity 0.2s;}
+.rg:hover .rg-fill{opacity:0.8 !important;}
+.rg.on .rg-fill{opacity:1 !important;}
+.rg-name{font-size:11px;font-weight:500;pointer-events:none;font-family:'Noto Sans KR',sans-serif;}
+.rg-en{font-size:9px;pointer-events:none;font-family:'Noto Sans KR',sans-serif;}
+.rg.on .rg-name{font-weight:700;}
+
+/* 결과 */
+.result-bar{display:none;align-items:center;justify-content:space-between;padding:8px 20px 14px;}
+.result-title{font-family:'Cormorant Garamond',serif;font-size:20px;}
+.result-count{font-size:12px;color:var(--muted);background:var(--sand);padding:4px 12px;border-radius:20px;}
+.food-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;padding:0 20px 110px;}
+.food-card{background:var(--white);border-radius:16px;overflow:hidden;border:1px solid var(--sand);cursor:pointer;transition:all 0.22s;}
+.food-card:hover{transform:translateY(-4px);box-shadow:0 14px 36px rgba(0,0,0,0.09);border-color:transparent;}
+.food-img{width:100%;height:175px;object-fit:cover;display:block;background:var(--sand);}
+.food-ph{width:100%;height:175px;background:linear-gradient(135deg,var(--sand),var(--gold));display:flex;align-items:center;justify-content:center;font-size:44px;}
+.food-body{padding:14px;}
+.food-region{font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--rust);margin-bottom:4px;}
+.food-name{font-size:15px;font-weight:600;margin-bottom:5px;line-height:1.4;}
+.food-addr{font-size:11px;color:var(--muted);line-height:1.5;}
+.food-tag{font-size:10px;padding:2px 9px;border-radius:100px;background:var(--stone);color:var(--muted);display:inline-block;margin:4px 3px 0 0;}
+.empty{text-align:center;padding:64px 24px;color:var(--muted);grid-column:1/-1;}
+
+/* 상세 오버레이 */
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:300;background:var(--white);transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);overflow-y:auto;}
+.overlay.open{transform:translateX(0);}
+.overlay-nav{position:sticky;top:0;z-index:10;background:rgba(253,252,250,0.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--sand);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
+.back-btn{background:none;border:none;cursor:pointer;font-size:14px;color:var(--ink);font-family:'Noto Sans KR',sans-serif;}
+.d-img{width:100%;height:240px;object-fit:cover;display:block;}
+.d-img-ph{width:100%;height:240px;background:linear-gradient(135deg,var(--sand),var(--gold));display:flex;align-items:center;justify-content:center;font-size:72px;}
+.d-body{padding:22px 20px 40px;max-width:680px;}
+.d-region{font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--rust);margin-bottom:6px;}
+.d-name{font-family:'Cormorant Garamond',serif;font-size:26px;line-height:1.25;margin-bottom:10px;}
+.d-addr{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:10px;}
+.d-tel{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--sage);font-weight:500;text-decoration:none;}
+.contact-btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+.c-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:100px;font-size:13px;font-weight:500;font-family:'Noto Sans KR',sans-serif;cursor:pointer;text-decoration:none;border:none;transition:all 0.2s;}
+.c-btn-naver{background:#03C75A;color:white;}
+.c-btn-naver:hover{background:#02a84a;}
+.c-btn-msg{background:var(--ink);color:white;}
+.c-btn-msg:hover{background:#333;}
+.c-btn-kakao{background:#FEE500;color:#391B1B;}
+.c-btn-kakao:hover{background:#f0d800;}
+.msg-form{display:none;margin-top:16px;background:var(--stone);border-radius:14px;padding:16px;}
+.msg-form input,.msg-form textarea{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--sand);background:var(--white);font-family:'Noto Sans KR',sans-serif;font-size:13px;margin-bottom:8px;outline:none;}
+.msg-form textarea{resize:none;}
+.msg-send-btn{width:100%;padding:12px;background:var(--rust);color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:'Noto Sans KR',sans-serif;cursor:pointer;}
+.divider{height:1px;background:var(--sand);margin:18px 0;}
+.map-label{font-size:12px;font-weight:600;margin-bottom:10px;}
+.d-map{width:100%;height:260px;border-radius:14px;border:none;box-shadow:0 4px 16px rgba(0,0,0,0.08);display:block;}
+.map-ext{display:block;text-align:center;margin-top:10px;font-size:12px;color:var(--sage);text-decoration:none;}
+
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(253,252,250,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--sand);display:flex;justify-content:space-around;padding:10px 0 16px;}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);font-family:'Noto Sans KR',sans-serif;}
+.nav-btn.active{color:var(--rust);}
+.nav-icon{font-size:20px;}
+
+@media(max-width:600px){
+  .food-grid{grid-template-columns:1fr 1fr;gap:10px;padding:0 14px 110px;}
+  .food-img,.food-ph{height:140px;}
+  .search-panel{margin:14px;padding:18px;}
+  .map-section{margin:0 14px 20px;}
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="index.html" class="logo">Jeju <span>Food</span></a>
+  <div class="lang-bar">
+    <button class="lang-btn active" onclick="setLang('ko',this)">한국어</button>
+    <button class="lang-btn" onclick="setLang('en',this)">EN</button>
+    <button class="lang-btn" onclick="setLang('zh',this)">中文</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-eyebrow" id="h-eyebrow">Jeju Food Guide</div>
+  <h1 class="hero-title"><em id="h-em">진짜 제주 맛</em>을 <span id="h-t2">찾아드립니다</span></h1>
+  <p class="hero-sub" id="h-sub">현지인이 사랑하는 식당부터 뷰 맛집까지, 제주 605곳</p>
+</section>
+
+<!-- 로딩 -->
+<div class="loading" id="loading">
+  <div class="loading-spinner"></div>
+  <p id="loading-txt">데이터 불러오는 중...</p>
+</div>
+
+<!-- 검색 패널 (데이터 로드 후 표시) -->
+<div id="main-content" style="display:none;">
+
+<div class="search-panel">
+  <div class="panel-section">
+    <div class="panel-label" id="lbl-region">지 역</div>
+    <div class="chips" id="region-chips">
+      <button class="chip on" data-v="all" onclick="pickChip(this,'r')">전체</button>
+      <button class="chip" data-v="제주시" onclick="pickChip(this,'r')">제주시</button>
+      <button class="chip" data-v="서귀포" onclick="pickChip(this,'r')">서귀포</button>
+      <button class="chip" data-v="애월" onclick="pickChip(this,'r')">애월</button>
+      <button class="chip" data-v="한림" onclick="pickChip(this,'r')">한림</button>
+      <button class="chip" data-v="성산" onclick="pickChip(this,'r')">성산</button>
+      <button class="chip" data-v="구좌" onclick="pickChip(this,'r')">구좌</button>
+      <button class="chip" data-v="조천" onclick="pickChip(this,'r')">조천</button>
+      <button class="chip" data-v="중문" onclick="pickChip(this,'r')">중문</button>
+      <button class="chip" data-v="안덕" onclick="pickChip(this,'r')">안덕</button>
+      <button class="chip" data-v="대정" onclick="pickChip(this,'r')">대정</button>
+    </div>
+  </div>
+  <div class="panel-section">
+    <div class="panel-label" id="lbl-theme">테 마</div>
+    <div class="chips" id="theme-chips">
+      <button class="chip on" data-v="all" onclick="pickChip(this,'t')">전체</button>
+      <button class="chip" data-v="해산물" onclick="pickChip(this,'t')">🦞 해산물</button>
+      <button class="chip" data-v="흑돼지" onclick="pickChip(this,'t')">🥩 흑돼지</button>
+      <button class="chip" data-v="카페·디저트" onclick="pickChip(this,'t')">☕ 카페·디저트</button>
+      <button class="chip" data-v="향토음식" onclick="pickChip(this,'t')">🍲 향토음식</button>
+      <button class="chip" data-v="고기구이" onclick="pickChip(this,'t')">🔥 고기구이</button>
+      <button class="chip" data-v="분위기맛집" onclick="pickChip(this,'t')">✨ 분위기맛집</button>
+      <button class="chip" data-v="로컬맛집" onclick="pickChip(this,'t')">📍 로컬맛집</button>
+    </div>
+  </div>
+  <button class="search-btn" id="btn-search" onclick="doSearch()">맛집 찾기</button>
+</div>
+
+<!-- 제주 SVG 지도 -->
+<div class="map-section">
+  <div class="map-section-label" id="lbl-map">제주 지역 안내</div>
+  <svg viewBox="0 0 760 340" xmlns="http://www.w3.org/2000/svg">
+    <rect width="760" height="340" fill="#ddf0f5" rx="12"/>
+    <path d="M 95,168 Q 88,148 98,132 Q 115,108 148,95 Q 188,80 238,73 Q 295,66 355,64 Q 415,62 472,68 Q 530,75 576,92 Q 618,110 638,133 Q 656,155 652,178 Q 645,202 622,218 Q 592,238 548,250 Q 498,262 435,268 Q 368,274 300,272 Q 232,270 175,256 Q 130,244 106,224 Q 90,208 95,188 Z" fill="#d4ede6" stroke="#9cc5ba" stroke-width="2"/>
+    <polygon points="382,118 412,170 352,170" fill="#7aab9a" opacity="0.55"/>
+    <text x="382" y="155" text-anchor="middle" font-size="9" fill="#3d6b5e" font-weight="600" font-family="'Noto Sans KR',sans-serif">한라산</text>
+    <g class="rg" id="rg-제주시" onclick="mapPick('제주시')"><ellipse cx="350" cy="105" rx="95" ry="30" class="rg-fill" fill="#4a7c6f" opacity="0.4"/><text x="350" y="101" text-anchor="middle" class="rg-name" fill="#1a2e2a">제주시</text><text x="350" y="115" text-anchor="middle" class="rg-en" fill="#5a8a7e">Jeju City</text></g>
+    <g class="rg" id="rg-애월" onclick="mapPick('애월')"><ellipse cx="198" cy="116" rx="68" ry="26" class="rg-fill" fill="#c04e28" opacity="0.4"/><text x="198" y="112" text-anchor="middle" class="rg-name" fill="#3a1a0e">애월</text><text x="198" y="126" text-anchor="middle" class="rg-en" fill="#a06040">Aewol</text></g>
+    <g class="rg" id="rg-한림" onclick="mapPick('한림')"><ellipse cx="118" cy="162" rx="58" ry="24" class="rg-fill" fill="#a8874a" opacity="0.4"/><text x="118" y="158" text-anchor="middle" class="rg-name" fill="#3a2a10">한림</text><text x="118" y="172" text-anchor="middle" class="rg-en" fill="#907040">Hallim</text></g>
+    <g class="rg" id="rg-조천" onclick="mapPick('조천')"><ellipse cx="490" cy="100" rx="65" ry="24" class="rg-fill" fill="#5b8a6e" opacity="0.4"/><text x="490" y="96" text-anchor="middle" class="rg-name" fill="#1a3028">조천</text><text x="490" y="110" text-anchor="middle" class="rg-en" fill="#4a7a5e">Jocheon</text></g>
+    <g class="rg" id="rg-구좌" onclick="mapPick('구좌')"><ellipse cx="592" cy="136" rx="60" ry="23" class="rg-fill" fill="#7a6aaa" opacity="0.4"/><text x="592" y="132" text-anchor="middle" class="rg-name" fill="#2a1a5a">구좌</text><text x="592" y="146" text-anchor="middle" class="rg-en" fill="#6a5a9a">Gujwa</text></g>
+    <g class="rg" id="rg-성산" onclick="mapPick('성산')"><ellipse cx="624" cy="186" rx="56" ry="22" class="rg-fill" fill="#c04e28" opacity="0.4"/><text x="624" y="182" text-anchor="middle" class="rg-name" fill="#3a1a0e">성산</text><text x="624" y="196" text-anchor="middle" class="rg-en" fill="#a06040">Seongsan</text></g>
+    <g class="rg" id="rg-남원" onclick="mapPick('남원')"><ellipse cx="534" cy="226" rx="54" ry="22" class="rg-fill" fill="#7aab9a" opacity="0.4"/><text x="534" y="222" text-anchor="middle" class="rg-name" fill="#1a3028">남원</text><text x="534" y="236" text-anchor="middle" class="rg-en" fill="#4a8a7a">Namwon</text></g>
+    <g class="rg" id="rg-서귀포" onclick="mapPick('서귀포')"><ellipse cx="390" cy="224" rx="86" ry="28" class="rg-fill" fill="#4a7c6f" opacity="0.4"/><text x="390" y="220" text-anchor="middle" class="rg-name" fill="#1a2e2a">서귀포</text><text x="390" y="234" text-anchor="middle" class="rg-en" fill="#5a8a7e">Seogwipo</text></g>
+    <g class="rg" id="rg-중문" onclick="mapPick('중문')"><ellipse cx="244" cy="216" rx="58" ry="22" class="rg-fill" fill="#a8874a" opacity="0.4"/><text x="244" y="212" text-anchor="middle" class="rg-name" fill="#3a2a10">중문</text><text x="244" y="226" text-anchor="middle" class="rg-en" fill="#907040">Jungmun</text></g>
+    <g class="rg" id="rg-안덕" onclick="mapPick('안덕')"><ellipse cx="158" cy="216" rx="52" ry="21" class="rg-fill" fill="#5b8a6e" opacity="0.4"/><text x="158" y="212" text-anchor="middle" class="rg-name" fill="#1a3028">안덕</text><text x="158" y="226" text-anchor="middle" class="rg-en" fill="#4a7a5e">Andeok</text></g>
+    <g class="rg" id="rg-대정" onclick="mapPick('대정')"><ellipse cx="102" cy="210" rx="46" ry="20" class="rg-fill" fill="#c04e28" opacity="0.4"/><text x="102" y="206" text-anchor="middle" class="rg-name" fill="#3a1a0e">대정</text><text x="102" y="220" text-anchor="middle" class="rg-en" fill="#a06040">Daejeong</text></g>
+    <ellipse cx="684" cy="168" rx="22" ry="14" fill="#c8e8e0" stroke="#9cc5ba" stroke-width="1.5"/>
+    <text x="684" y="172" text-anchor="middle" font-size="9" fill="#5a8a7e" font-family="'Noto Sans KR',sans-serif">우도</text>
+    <circle cx="720" cy="36" r="18" fill="white" opacity="0.85" stroke="#ccc" stroke-width="1"/>
+    <text x="720" y="28" text-anchor="middle" font-size="10" fill="#888" font-weight="700" font-family="Arial,sans-serif">N</text>
+    <polygon points="720,31 715,46 720,42 725,46" fill="#c04e28"/>
+  </svg>
+</div>
+
+<div class="result-bar" id="result-bar">
+  <div class="result-title" id="result-title"></div>
+  <div class="result-count" id="result-count"></div>
+</div>
+<div class="food-grid" id="food-grid"></div>
+
+</div><!-- /main-content -->
+
+<!-- 상세 오버레이 -->
+<div class="overlay" id="overlay">
+  <div class="overlay-nav">
+    <button class="back-btn" id="btn-back" onclick="closeDetail()">← 목록으로</button>
+    <span style="font-size:10px;color:var(--muted);letter-spacing:0.12em;">JEJU FOOD</span>
+  </div>
+  <div id="d-img-wrap"></div>
+  <div class="d-body">
+    <div class="d-region" id="d-region"></div>
+    <div class="d-name" id="d-name"></div>
+    <div class="d-addr" id="d-addr"></div>
+    <a class="d-tel" id="d-tel" href="#"></a>
+    <div class="contact-btns">
+      <a class="c-btn c-btn-naver" id="btn-naver" href="#" target="_blank">🔍 <span id="txt-naver">네이버 지도</span></a>
+      <button class="c-btn c-btn-msg" onclick="toggleMsgForm()">✉️ <span id="txt-msg">메시지 보내기</span></button>
+      <a class="c-btn c-btn-kakao" id="btn-kakao" href="#" target="_blank">💬 <span id="txt-kakao">카카오맵</span></a>
+    </div>
+    <div class="msg-form" id="msg-form">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px;" id="txt-form-title">문의 / 예약 메시지</div>
+      <input id="f-name" type="text" placeholder="이름 / Name">
+      <input id="f-date" type="date">
+      <input id="f-people" type="number" placeholder="인원 / People" min="1" max="30">
+      <textarea id="f-msg" rows="3" placeholder="문의 내용 / Message"></textarea>
+      <button class="msg-send-btn" onclick="sendMsg()" id="txt-send-btn">보내기</button>
+      <div id="msg-sent" style="display:none;text-align:center;padding:12px;color:var(--sage);font-size:13px;margin-top:8px;">✅ 메시지가 전송되었습니다!</div>
+    </div>
+    <div class="divider"></div>
+    <div class="map-label" id="d-map-label">📍 위치</div>
+    <iframe class="d-map" id="d-map" allowfullscreen loading="lazy" title="map"></iframe>
+    <a class="map-ext" id="d-map-ext" href="#" target="_blank">🗺 구글맵에서 크게 보기</a>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn" onclick="location.href='index.html'"><span class="nav-icon">🏠</span><span id="nav-0">숙소</span></button>
+  <button class="nav-btn active"><span class="nav-icon">🍽</span><span id="nav-1">맛집</span></button>
+  <button class="nav-btn"><span class="nav-icon">🗺</span><span id="nav-2">지도</span></button>
+  <button class="nav-btn"><span class="nav-icon">♡</span><span id="nav-3">저장</span></button>
+</nav>
+
+<script>
+// ── Google Sheets 설정 ──
+var SHEET_ID = '1wLI-ccAyS83jXqJrM-HtN1rt9TMY3wPBMURzO2NQo_M';
+var SHEET_URL = 'https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&sheet=Sheet1';
+
+// ── 다국어 ──
+var T = {
+  ko:{
+    eyebrow:'Jeju Food Guide', em:'진짜 제주 맛', t2:'찾아드립니다',
+    sub:'현지인이 사랑하는 식당부터 뷰 맛집까지, 제주 605곳',
+    lblRegion:'지 역', lblTheme:'테 마', lblMap:'제주 지역 안내',
+    btnSearch:'맛집 찾기', btnBack:'← 목록으로',
+    mapLabel:'📍 위치', mapExt:'🗺 구글맵에서 크게 보기',
+    naverTxt:'네이버 지도', msgTxt:'메시지 보내기', kakaoTxt:'카카오맵',
+    formTitle:'문의 / 예약 메시지', sendBtn:'보내기', sent:'✅ 메시지가 전송되었습니다!',
+    loading:'데이터 불러오는 중...',
+    nav:['숙소','맛집','지도','저장'], countUnit:'개',
+    regions:{all:'전체','제주시':'제주시','서귀포':'서귀포','애월':'애월','한림':'한림','성산':'성산','구좌':'구좌','조천':'조천','중문':'중문','안덕':'안덕','대정':'대정','남원':'남원'},
+    themes:{all:'전체','해산물':'🦞 해산물','흑돼지':'🥩 흑돼지','카페·디저트':'☕ 카페·디저트','향토음식':'🍲 향토음식','고기구이':'🔥 고기구이','분위기맛집':'✨ 분위기맛집','로컬맛집':'📍 로컬맛집'},
+    svgR:{'제주시':'제주시','애월':'애월','한림':'한림','조천':'조천','구좌':'구좌','성산':'성산','서귀포':'서귀포','중문':'중문','안덕':'안덕','대정':'대정','남원':'남원'}
+  },
+  en:{
+    eyebrow:'Jeju Food Guide', em:'Real Jeju Flavors', t2:'Find Your Restaurant',
+    sub:'605 curated restaurants across Jeju Island',
+    lblRegion:'AREA', lblTheme:'THEME', lblMap:'Jeju Area Guide',
+    btnSearch:'Find Restaurants', btnBack:'← Back',
+    mapLabel:'📍 Location', mapExt:'🗺 Open in Google Maps',
+    naverTxt:'Naver Map', msgTxt:'Send Message', kakaoTxt:'Kakao Map',
+    formTitle:'Inquiry / Reservation', sendBtn:'Send', sent:'✅ Message sent!',
+    loading:'Loading data...',
+    nav:['Stay','Food','Map','Saved'], countUnit:' results',
+    regions:{all:'All','제주시':'Jeju City','서귀포':'Seogwipo','애월':'Aewol','한림':'Hallim','성산':'Seongsan','구좌':'Gujwa','조천':'Jocheon','중문':'Jungmun','안덕':'Andeok','대정':'Daejeong','남원':'Namwon'},
+    themes:{all:'All','해산물':'🦞 Seafood','흑돼지':'🥩 Black Pork','카페·디저트':'☕ Café & Dessert','향토음식':'🍲 Local Cuisine','고기구이':'🔥 BBQ','분위기맛집':'✨ Ambience','로컬맛집':'📍 Hidden Gems'},
+    svgR:{'제주시':'Jeju City','애월':'Aewol','한림':'Hallim','조천':'Jocheon','구좌':'Gujwa','성산':'Seongsan','서귀포':'Seogwipo','중문':'Jungmun','안덕':'Andeok','대정':'Daejeong','남원':'Namwon'}
+  },
+  zh:{
+    eyebrow:'济州美食指南', em:'品味真正的济州', t2:'美食推荐',
+    sub:'精选济州605家餐厅，从当地美食到网红打卡地',
+    lblRegion:'地 区', lblTheme:'主 题', lblMap:'济州地区指南',
+    btnSearch:'查找餐厅', btnBack:'← 返回',
+    mapLabel:'📍 位置', mapExt:'🗺 在谷歌地图中查看',
+    naverTxt:'Naver地图', msgTxt:'发送消息', kakaoTxt:'Kakao地图',
+    formTitle:'咨询 / 预约', sendBtn:'发送', sent:'✅ 消息已发送！',
+    loading:'加载数据中...',
+    nav:['住宿','美食','地图','收藏'], countUnit:'家',
+    regions:{all:'全部','제주시':'济州市','서귀포':'西归浦','애월':'涯月','한림':'翰林','성산':'城山','구좌':'旧左','조천':'朝天','중문':'中文','안덕':'安德','대정':'大静','남원':'南元'},
+    themes:{all:'全部','해산물':'🦞 海鲜','흑돼지':'🥩 黑猪肉','카페·디저트':'☕ 咖啡·甜点','향토음식':'🍲 乡土料理','고기구이':'🔥 烧烤','분위기맛집':'✨ 氛围餐厅','로컬맛집':'📍 隐藏宝藏'},
+    svgR:{'제주시':'济州市','애월':'涯月','한림':'翰林','조천':'朝天','구좌':'旧左','성산':'城山','서귀포':'西归浦','중문':'中文','안덕':'安德','대정':'大静','남원':'南元'}
+  }
+};
+
+var lang = 'ko';
+var selR = 'all';
+var selT = 'all';
+var restaurants = [];
+var filteredList = [];
+
+// ── CSV 파싱 ──
+function parseCSV(text) {
+  var lines = text.trim().split('\n');
+  var headers = parseCSVLine(lines[0]);
+  var result = [];
+  for (var i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    var vals = parseCSVLine(lines[i]);
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      obj[headers[j]] = (vals[j] || '').trim().replace(/^"|"$/g,'');
+    }
+    result.push(obj);
+  }
+  return result;
+}
+
+function parseCSVLine(line) {
+  var result = [];
+  var cur = '';
+  var inQ = false;
+  for (var i = 0; i < line.length; i++) {
+    var c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+    else { cur += c; }
+  }
+  result.push(cur);
+  return result;
+}
+
+// ── Google Sheets에서 데이터 로드 ──
+function loadData() {
+  fetch(SHEET_URL)
+    .then(function(r) {
+      if (!r.ok) throw new Error('fetch failed');
+      return r.text();
+    })
+    .then(function(text) {
+      var rows = parseCSV(text);
+      restaurants = [];
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        // 노출여부 Y인 것만
+        if (r['노출여부'] && r['노출여부'].toUpperCase() === 'N') continue;
+        var themes = (r['테마'] || '로컬맛집').split(',').map(function(s){ return s.trim(); });
+        restaurants.push({
+          id: parseInt(r['id']) || (i+1),
+          name: r['상호명'] || '',
+          region: r['지역'] || '',
+          themes: themes,
+          addr: r['주소'] || '',
+          tel: r['전화'] || '',
+          img: (r['사진URL'] || '').replace('http://','https://'),
+          lat: parseFloat(r['위도']) || 0,
+          lng: parseFloat(r['경도']) || 0
+        });
+      }
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('main-content').style.display = 'block';
+      document.getElementById('h-sub').textContent = T[lang].sub.replace('605', restaurants.length);
+      console.log('✅ 데이터 로드 완료:', restaurants.length + '개');
+    })
+    .catch(function(e) {
+      document.getElementById('loading').innerHTML = '<p style="color:var(--rust)">데이터 로드 실패. 잠시 후 다시 시도해주세요.</p>';
+      console.error(e);
+    });
+}
+
+// ── 언어 전환 ──
+function setLang(l, btn) {
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var t = T[l];
+  document.getElementById('h-eyebrow').textContent = t.eyebrow;
+  document.getElementById('h-em').textContent = t.em;
+  document.getElementById('h-t2').textContent = t.t2;
+  document.getElementById('h-sub').textContent = t.sub.replace('605', restaurants.length);
+  document.getElementById('lbl-region').textContent = t.lblRegion;
+  document.getElementById('lbl-theme').textContent = t.lblTheme;
+  document.getElementById('lbl-map').textContent = t.lblMap;
+  document.getElementById('btn-search').textContent = t.btnSearch;
+  document.getElementById('btn-back').textContent = t.btnBack;
+  document.getElementById('txt-naver').textContent = t.naverTxt;
+  document.getElementById('txt-msg').textContent = t.msgTxt;
+  document.getElementById('txt-kakao').textContent = t.kakaoTxt;
+  document.getElementById('txt-form-title').textContent = t.formTitle;
+  document.getElementById('txt-send-btn').textContent = t.sendBtn;
+  for (var i = 0; i < 4; i++) document.getElementById('nav-'+i).textContent = t.nav[i];
+  // 지역 칩
+  document.querySelectorAll('#region-chips .chip').forEach(function(c){
+    c.textContent = t.regions[c.getAttribute('data-v')] || c.getAttribute('data-v');
+  });
+  // 테마 칩
+  document.querySelectorAll('#theme-chips .chip').forEach(function(c){
+    c.textContent = t.themes[c.getAttribute('data-v')] || c.getAttribute('data-v');
+  });
+  // SVG 지역명
+  Object.keys(t.svgR).forEach(function(ko){
+    var el = document.querySelector('#rg-'+ko+' .rg-name');
+    if (el) el.textContent = t.svgR[ko];
+  });
+  // 결과 다시 렌더
+  if (document.getElementById('result-bar').style.display === 'flex') renderCards();
+}
+
+// ── 칩 선택 ──
+function pickChip(el, type) {
+  var gid = type === 'r' ? 'region-chips' : 'theme-chips';
+  document.querySelectorAll('#'+gid+' .chip').forEach(function(c){ c.classList.remove('on'); });
+  el.classList.add('on');
+  if (type === 'r') {
+    selR = el.getAttribute('data-v');
+    document.querySelectorAll('.rg').forEach(function(g){ g.classList.remove('on'); });
+    if (selR !== 'all') { var rg = document.getElementById('rg-'+selR); if(rg) rg.classList.add('on'); }
+  } else {
+    selT = el.getAttribute('data-v');
+  }
+}
+
+// ── 지도 클릭 ──
+function mapPick(region) {
+  selR = region;
+  document.querySelectorAll('#region-chips .chip').forEach(function(c){
+    c.classList.toggle('on', c.getAttribute('data-v') === region);
+  });
+  document.querySelectorAll('.rg').forEach(function(g){ g.classList.remove('on'); });
+  var rg = document.getElementById('rg-'+region);
+  if (rg) rg.classList.add('on');
+  doSearch();
+}
+
+// ── 검색 ──
+function doSearch() {
+  var t = T[lang];
+  filteredList = restaurants;
+  if (selR !== 'all') filteredList = filteredList.filter(function(r){ return r.region === selR; });
+  if (selT !== 'all') filteredList = filteredList.filter(function(r){ return r.themes.indexOf(selT) >= 0; });
+
+  var bar = document.getElementById('result-bar');
+  bar.style.display = 'flex';
+  var rLabel = selR === 'all' ? '' : (t.regions[selR] || selR);
+  var tLabel = selT === 'all' ? '' : (t.themes[selT] || selT).replace(/^.\s/,'');
+  var title = [rLabel, tLabel].filter(Boolean).join(' ') || (t.regions['all'] || '전체');
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-count').textContent = filteredList.length + t.countUnit;
+  renderCards();
+  bar.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+// ── 카드 렌더 ──
+function renderCards() {
+  var t = T[lang];
+  var grid = document.getElementById('food-grid');
+  grid.innerHTML = '';
+  if (!filteredList.length) {
+    var empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.innerHTML = '<div style="font-size:48px;margin-bottom:12px">🍽</div><p>해당 조건의 식당이 없어요</p>';
+    grid.appendChild(empty);
+    return;
+  }
+  filteredList.forEach(function(r) {
+    var card = document.createElement('div');
+    card.className = 'food-card';
+    card.onclick = function(){ openDetail(r.id); };
+    var imgEl;
+    if (r.img) {
+      imgEl = document.createElement('img');
+      imgEl.className = 'food-img';
+      imgEl.src = r.img;
+      imgEl.loading = 'lazy';
+      imgEl.onerror = function(){ this.outerHTML = '<div class="food-ph">🍽</div>'; };
+    } else {
+      imgEl = document.createElement('div');
+      imgEl.className = 'food-ph';
+      imgEl.textContent = '🍽';
+    }
+    card.appendChild(imgEl);
+    var body = document.createElement('div');
+    body.className = 'food-body';
+    body.innerHTML = '<div class="food-region">'+(t.regions[r.region]||r.region)+'</div>'
+      +'<div class="food-name">'+r.name+'</div>'
+      +'<div class="food-addr">'+r.addr+'</div>';
+    r.themes.forEach(function(th){
+      var tag = document.createElement('span');
+      tag.className = 'food-tag';
+      tag.textContent = t.themes[th] || th;
+      body.appendChild(tag);
+    });
+    card.appendChild(body);
+    grid.appendChild(card);
+  });
+}
+
+// ── 상세 ──
+function openDetail(id) {
+  var r = restaurants.find(function(x){ return x.id === id; });
+  var t = T[lang];
+  var wrap = document.getElementById('d-img-wrap');
+  wrap.innerHTML = '';
+  if (r.img) {
+    var im = document.createElement('img');
+    im.className = 'd-img'; im.src = r.img;
+    im.onerror = function(){ this.outerHTML='<div class="d-img-ph">🍽</div>'; };
+    wrap.appendChild(im);
+  } else {
+    var ph = document.createElement('div');
+    ph.className = 'd-img-ph'; ph.textContent = '🍽';
+    wrap.appendChild(ph);
+  }
+  document.getElementById('d-region').textContent = t.regions[r.region] || r.region;
+  document.getElementById('d-name').textContent = r.name;
+  document.getElementById('d-addr').textContent = '📍 '+r.addr;
+  var tel = document.getElementById('d-tel');
+  if (r.tel) { tel.textContent='📞 '+r.tel; tel.href='tel:'+r.tel; tel.style.display='inline-flex'; }
+  else { tel.style.display='none'; }
+  document.getElementById('d-map-label').textContent = t.mapLabel;
+  document.getElementById('d-map-ext').textContent = t.mapExt;
+  // 지도
+  var mapQ = (r.lat && r.lat !== 0) ? r.lat+','+r.lng : encodeURIComponent(r.name+' '+r.addr);
+  document.getElementById('d-map').src = 'https://maps.google.com/maps?q='+mapQ+'&z=16&output=embed&hl=ko';
+  document.getElementById('d-map-ext').href = (r.lat && r.lat !== 0)
+    ? 'https://maps.google.com/maps?q='+r.lat+','+r.lng+'&z=16'
+    : 'https://maps.google.com/maps?q='+encodeURIComponent(r.name+' '+r.addr);
+  // 외부 링크
+  document.getElementById('btn-naver').href = 'https://map.naver.com/v5/search/'+encodeURIComponent(r.name+' '+r.addr);
+  document.getElementById('btn-kakao').href = 'https://map.kakao.com/?q='+encodeURIComponent(r.name+' '+r.addr);
+  // 폼 리셋
+  document.getElementById('msg-form').style.display = 'none';
+  document.getElementById('msg-sent').style.display = 'none';
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-date').value = '';
+  document.getElementById('f-people').value = '';
+  document.getElementById('f-msg').value = '';
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail(){
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  document.getElementById('d-map').src = '';
+}
+
+function toggleMsgForm(){
+  var f = document.getElementById('msg-form');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function sendMsg(){
+  var name = document.getElementById('f-name').value;
+  var msg = document.getElementById('f-msg').value;
+  if (!name || !msg) { alert('이름과 문의 내용을 입력해주세요.'); return; }
+  document.getElementById('msg-sent').style.display = 'block';
+  document.getElementById('msg-sent').textContent = T[lang].sent;
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-date').value = '';
+  document.getElementById('f-people').value = '';
+  document.getElementById('f-msg').value = '';
+  setTimeout(function(){
+    document.getElementById('msg-sent').style.display = 'none';
+    document.getElementById('msg-form').style.display = 'none';
+  }, 3000);
+}
+
+// ── 시작 ──
+loadData();
+</script>
+</body>
+</html>
